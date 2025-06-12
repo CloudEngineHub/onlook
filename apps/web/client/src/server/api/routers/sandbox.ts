@@ -6,6 +6,7 @@ import { addScriptConfig } from '@onlook/parser/src/code-edit/config';
 import { shortenUuid } from '@onlook/utility/src/id';
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure } from '../trpc';
+import { injectPreloadScript } from '@/components/store/editor/pages/helper';
 
 const sdk = new CodeSandbox(env.CSB_API_KEY);
 
@@ -112,7 +113,10 @@ export const sandboxRouter = createTRPCRouter({
                                     const modifiedAst = addScriptConfig(ast);
                                     content = generate(modifiedAst, {}, content).code;
                                 } catch (parseError) {
-                                    console.warn('Failed to add script config to layout.tsx:', parseError);
+                                    console.warn(
+                                        'Failed to add script config to layout.tsx:',
+                                        parseError,
+                                    );
                                 }
                             }
 
@@ -164,5 +168,27 @@ export const sandboxRouter = createTRPCRouter({
                     `Failed to create project sandbox: ${error instanceof Error ? error.message : 'Unknown error'}`,
                 );
             }
+        }),
+    createFromGitHub: protectedProcedure
+        .input(
+            z.object({
+                repoUrl: z.string(),
+                branch: z.string(),
+            }),
+        )
+        .mutation(async ({ input }) => {
+            const sandbox = await sdk.sandboxes.create({
+                source: 'git',
+                url: input.repoUrl,
+                branch: input.branch,
+                async setup(session) {
+                    await injectPreloadScript(session);
+                    await session.setup.run();
+                },
+            });
+            return {
+                sandboxId: sandbox.id,
+                previewUrl: `https://${sandbox.id}-8084.csb.app`,
+            };
         }),
 });
