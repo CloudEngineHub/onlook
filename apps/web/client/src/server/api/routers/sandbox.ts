@@ -1,3 +1,4 @@
+import { injectPreloadScript } from '@/components/store/editor/pages/helper';
 import { env } from '@/env';
 import { CodeSandbox, Sandbox, WebSocketSession } from '@codesandbox/sdk';
 import { CSB_PREVIEW_TASK_NAME, getSandboxPreviewUrl, SandboxTemplates, Templates } from '@onlook/constants';
@@ -6,7 +7,6 @@ import { addScriptConfig } from '@onlook/parser/src/code-edit/config';
 import { shortenUuid } from '@onlook/utility/src/id';
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure } from '../trpc';
-import { injectPreloadScript } from '@/components/store/editor/pages/helper';
 
 const sdk = new CodeSandbox(env.CSB_API_KEY);
 
@@ -194,6 +194,8 @@ export const sandboxRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ input }) => {
+            const template = SandboxTemplates[Templates.BLANK];
+
             const sandbox = await sdk.sandboxes.create({
                 source: 'git',
                 url: input.repoUrl,
@@ -205,7 +207,7 @@ export const sandboxRouter = createTRPCRouter({
             });
             return {
                 sandboxId: sandbox.id,
-                previewUrl: `https://${sandbox.id}-8084.csb.app`,
+                previewUrl: getSandboxPreviewUrl(sandbox.id, template.port),
             };
         }),
 });
