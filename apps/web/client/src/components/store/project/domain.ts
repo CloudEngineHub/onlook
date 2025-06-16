@@ -66,5 +66,12 @@ export class DomainsManager {
         return this.domains.preview;
     }
 
+    async unpublish(type: DomainType) {
+        if (!this._project) {
+            console.error('No project found');
+            throw new Error('No project found');
+        }
+    }
+
     dispose() { }
 }
